@@ -1,209 +1,296 @@
-# HBnB Evolution - Technical Design
+# Holberton School HBnB – Documentation
 
-## 0. High-Level Package Diagram
+# TASK 0 - High-Level Package Diagram
 
-### Architecture Overview
-The HBnB application follows a **three-layer architecture** to ensure a clean separation of concerns:
 
-1. **Presentation Layer**: Handles API requests and user interactions.
-2. **Business Logic Layer**: Contains the core entities (User, Place, etc.) and logic.
-3. **Persistence Layer**: Manages data storage and retrieval.
+Overview
 
-### Diagram
+This document presents a high-level package diagram of the HBnB application. The diagram illustrates a three-layer architecture and shows how these layers communicate using the Facade design pattern.
+
+The goal is to provide a clear and structured view of how the system is organized and how its components interact.
+
+Architecture Overview
+
+The HBnB application is built using a layered architecture with three main layers:
+
+Presentation Layer
+Business Logic Layer
+Persistence Layer
+
+Each layer has its own responsibility and communicates with other layers in a controlled way.
+
+▫️Layer Descriptions
+
+
+1. Presentation Layer
+
+This is the layer that users interact with directly. It includes API endpoints and Services.
+
+When a user sends a request (for example, creating a user or viewing places), it is received by this layer first. Then the request is passed to the system through the Facade, which acts as the main entry point.
+
+
+2. Business Logic Layer
+
+This is the core of the application. It defines how the system works and what rules are applied.
+
+It includes:
+User
+Place
+Review
+Amenity
+
+In this layer:
+
+Business rules are applied
+Data is validated
+System logic is handled
+
+
+3. Persistence Layer
+
+This layer is responsible for storing and retrieving data. It communicates directly with the database.
+
+It includes:
+
+Repository classes (e.g., UserRepository, PlaceRepository)
+
+Its main tasks:
+
+Save data to the database
+Retrieve data when needed
+
+
+▫️ Facade Pattern
+
+The Facade pattern simplifies communication between layers by providing a single interface.
+
+Instead of the Presentation Layer directly communicating with the Business Logic Layer, all requests go through the Facade.
+
+The Facade works like a middle layer that:
+
+Receives requests
+Sends them to the correct component
+Hides internal complexity
+
+
+Benefits
+Provides one single entry point
+Makes the system easier to understand
+Improves code organization
+Reduces dependency between layers
+
+
+Communication Flow
+The user sends a request to the Presentation Layer
+The request goes to the Facade
+The Facade calls the Business Logic Layer
+The Business Logic Layer interacts with the Persistence Layer
+The result is returned back to the user through the same path
+
+
+
+# Package Diagram
+
+```mermaid
 classDiagram
-    namespace Presentation_Layer {
-        class Services_API {
-            +UserEndpoints
-            +PlaceEndpoints
-            +ReviewEndpoints
-            +AmenityEndpoints
-        }
-    }
 
-    namespace Business_Logic_Layer {
-        class HBnBFacade {
-            <<Interface>>
-            +create_user(data)
-            +get_place_details(id)
-            +register_review(review)
-        }
-        class Models {
-            +User
-            +Place
-            +Review
-            +Amenity
-        }
-    }
+class PresentationLayer {
+    +API Endpoints
+    +Services
+}
 
-    namespace Persistence_Layer {
-        class Repository {
-            +Save(obj)
-            +Get(id)
-            +Delete(id)
-        }
-        class Database {
-            <<Storage>>
-        }
-    }
+class Facade {
+    +create_User()
+    +get_Places()
+    +add_Review()
+    +add_Amenity()
+}
 
-    Services_API --> HBnBFacade : Unified Calls
-    HBnBFacade --> Models : Manages
-    HBnBFacade --> Repository : Coordinates Persistence
-    Repository --> Database : SQL/NoSQL Operations
+class BusinessLogicLayer {
+    +User
+    +Place
+    +Review
+    +Amenity
+}
 
-### The Facade Pattern
-The communication between the Presentation and Business Logic layers is handled via a **Facade**. This pattern provides a unified interface, simplifying the API's interaction with the backend and allowing internal logic changes without affecting external endpoints.
+class PersistenceLayer {
+    +User-Repository
+    +Place-Repository
+    +Review-Repository
+    +Amenity-Repository
+}
 
----
+PresentationLayer --> Facade : Uses
+Facade --> BusinessLogicLayer : Handles business logic
+BusinessLogicLayer --> PersistenceLayer : Database operations
 
-## 1. Business Logic Class Diagram
+```
 
-### Entities Overview
-The Business Logic layer is designed using an Object-Oriented approach with a central **BaseModel** to ensure data consistency across all entities.
+# TASK 1 - Business Logic Layer
 
-* **BaseModel**: Parent class providing `id`, `created_at`, and `updated_at`.
-* **User**: Handles profile information and links to owned places and written reviews.
-* **Place**: The core entity for listings, linked to an owner, multiple reviews, and a list of amenities.
-* **Review**: Connects a User to a Place with a rating and comment.
-* **Amenity**: Standalone features (like "WiFi" or "Pool") that can be associated with multiple places.
+Overview
 
-### Diagram
+This document describes the Business Logic layer of the HBnB application. It presents a UML class diagram that models the core entities of the system, their attributes, methods, and relationships.
+
+The main goal is to clearly represent how the business logic is structured and how the main entities interact with each other.
+
+
+Business Logic Layer
+
+The Business Logic layer contains the main entities of the application:
+
+User
+Place
+Review
+Amenity
+
+These entities represent the core functionality of the system and define the main business rules.
+
+## Class Diagram
 ```mermaid
 classDiagram
-    class BaseModel {
-        +UUID4 id
-        +datetime created_at
-        +datetime updated_at
-        +save()
-        +update(data)
-    }
 
-    class User {
-        +string first_name
-        +string last_name
-        +string email
-        +string password
-        +bool is_admin
-        +register()
-        +login()
-    }
+class BaseModel {
+    +UUID4 id
+    +DateTime created_at
+    +DateTime updated_at
+    +save()
+    +update(data)
+}
 
-    class Place {
-        +string title
-        +string description
-        +float price
-        +float latitude
-        +float longitude
-        +add_amenity(amenity)
-        +add_review(review)
-    }
+class User {
+    +String first_name
+    +String last_name
+    +String email
+    +String password
+    +Boolean is_admin
+    +register()
+    +update_profile()
+}
 
-    class Review {
-        +int rating
-        +string comment
-        +edit_review(text, rating)
-    }
+class Place {
+    +String title
+    +String description
+    +Float price
+    +Float latitude
+    +Float longitude
+    +UUID4 owner_id
+    +create()
+    +update()
+}
 
-    class Amenity {
-        +string name
-        +string description
-    }
+class Review {
+    +Int rating
+    +String comment
+    +UUID4 place_id
+    +UUID4 user_id
+    +post()
+}
 
-    BaseModel <|-- User : Inheritance
-    BaseModel <|-- Place : Inheritance
-    BaseModel <|-- Review : Inheritance
-    BaseModel <|-- Amenity : Inheritance
+class Amenity {
+    +String name
+    +String description
+    +create()
+}
 
-    User "1" --> "0..*" Place : Owns
-    User "1" --> "0..*" Review : Writes
-    Place "1" *-- "0..*" Review : Contains
-    Place "0..*" -- "0..*" Amenity : Has (Many-to-Many)
+%% Inheritance (clean top-down flow)
+BaseModel <|-- User
+BaseModel <|-- Place
+BaseModel <|-- Review
+BaseModel <|-- Amenity
 
+%% Relationships (grouped logically)
+User "1" --> "0..*" Place : owns
+User "1" --> "0..*" Review : writes
 
----
+Place "1" --> "0..*" Review : has
+Place "0..*" -- "0..*" Amenity : includes
 
-## 2. Sequence Diagrams
+```
 
-This section illustrates the dynamic interaction between the Presentation, Business Logic, and Persistence layers for four key system operations using the Facade pattern.
+# TASK 2 - API Calls
+Overview
 
-### 2.1 User Registration
-**Description:** A new user signs up for an account. The system validates the email uniqueness before creating the record.
+This document presents two main API flows in the HBnB application using sequence diagrams.
+Each diagram illustrates how the Presentation, Business Logic, and Persistence layers interact with each other through the Facade pattern.
+
+The goal is to clearly show the request flow, from the user request to data processing and response return.
+
+# User Registration flow
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API as Presentation Layer (API)
-    participant Facade as Business Logic (Facade)
-    participant DB as Persistence Layer (Database)
 
-    Client->>API: POST /users (name, email, password)
-    API->>Facade: register_user(data)
-    Facade->>DB: get_user_by_email(email)
-    DB-->>Facade: None (Email is unique)
-    Facade->>DB: save(user_instance)
-    DB-->>Facade: Success
-    Facade-->>API: User Data (UUID)
-    API-->>Client: 201 Created
+participant User
+participant API
+participant BusinessLogic
+participant Database
 
-### 2.2 Place Creation
+User->>API: POST /users (register)
+API->>BusinessLogic: validate & create user
+BusinessLogic->>Database: save user
+Database-->>BusinessLogic: confirmation
+BusinessLogic-->>API: success
+API-->>User: 201 Created
 
-**Description:** An authorized user creates a new rental listing. The flow ensures the owner is valid before listing the place.
+```
+
+# Place Creation
+
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API as Presentation Layer (API)
-    participant Facade as Business Logic (Facade)
-    participant DB as Persistence Layer (Database)
 
-    Client->>API: POST /places (title, price, owner_id)
-    API->>Facade: create_place(data)
-    Facade->>DB: get_user(owner_id)
-    DB-->>Facade: User Instance Found
-    Facade->>DB: save(place_instance)
-    DB-->>Facade: Success
-    Facade-->>API: Place Data (UUID)
-    API-->>Client: 201 Created
+participant User
+participant API
+participant Facade
+participant BusinessLogic
+participant Database
 
-### 2.3 Review Submission
+User->>API: POST /places
+API->>Facade: createPlace(data)
+Facade->>BusinessLogic: validate place
+BusinessLogic->>Database: save place
+Database-->>BusinessLogic: OK
+BusinessLogic-->>Facade: place created
+Facade-->>API: success
+API-->>User: 201 Created
+```
 
-**Description:** A user submits a rating and comment for a place. The system links the review to both the user and the place.
+# Review Submission Flow
+
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API as Presentation Layer (API)
-    participant Facade as Business Logic (Facade)
-    participant DB as Persistence Layer (Database)
 
-    Client->>API: POST /places/{id}/reviews (user_id, rating, comment)
-    API->>Facade: add_review(place_id, data)
-    Facade->>DB: get_place(place_id)
-    DB-->>Facade: Place Valid
-    Facade->>DB: get_user(user_id)
-    DB-->>Facade: User Valid
-    Facade->>DB: save(review_instance)
-    DB-->>Facade: Success
-    Facade-->>API: Review Data (UUID)
-    API-->>Client: 201 Created
+participant User
+participant API
+participant BusinessLogic
+participant Database
 
-### 2.4 Fetching a List of Places
+User->>API: Send Review (Rating, Comment)
+API->>BusinessLogic: Check IDs
+BusinessLogic->>Database: Save Review
+Database-->>BusinessLogic: Success
+BusinessLogic-->>API: Review Added
+API-->>User: Thank you for your review!
 
-**Description:** A user requests all available listings. The flow illustrates a simple retrieval process through the architecture.
-```mermaid
+```
+
+# Fetching a List of Places
+```mermaid 
 sequenceDiagram
-    participant Client
-    participant API as Presentation Layer (API)
-    participant Facade as Business Logic (Facade)
-    participant DB as Persistence Layer (Database)
 
-    Client->>API: GET /places
-    API->>Facade: get_all_places()
-    Facade->>DB: get_all_records("Place")
-    DB-->>Facade: List of Place Entities
-    Facade-->>API: List of Dictionaries (DTOs)
-    API-->>Client: 200 OK (JSON List)
+participant User
+participant API
+participant Facade
+participant BusinessLogic
+participant Database
 
----
+User->>API: GET /places
+API->>Facade: getPlaces(filters)
+Facade->>BusinessLogic: fetch data
+BusinessLogic->>Database: query places
+Database-->>BusinessLogic: results
+BusinessLogic-->>Facade: places list
+Facade-->>API: response
+API-->>User: 200 OK + data
 
-### Final Compilation Notes
-
-This document provides the foundational design for the HBnB project. By adhering to the **Facade pattern**  and the **layered architecture** outlined here, the development team ensures that the code remains modular, easy to refactor, and ready for future persistence upgrades (e.g., transitioning from in-memory storage to a relational database). 
