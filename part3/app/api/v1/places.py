@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from app.services import facade
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 api = Namespace('places', description='Place operations')
 
@@ -28,7 +29,7 @@ place_model = api.model('Place', {
     'price': fields.Float(required=True, description='Price per night'),
     'latitude': fields.Float(required=True, description='Latitude of the place'),
     'longitude': fields.Float(required=True, description='Longitude of the place'),
-    'owner_id': fields.String(required=True, description='ID of the owner'),
+    'owner_id': fields.String(required=False, description='ID of the owner'),
     'amenities': fields.List(fields.String, required=True, description="List of amenities ID's")
 })
 
@@ -38,9 +39,12 @@ class PlaceList(Resource):
     @api.expect(place_model)
     @api.response(201, 'Place successfully created')
     @api.response(400, 'Invalid input data')
+    @api.response(401, 'Unauthorized')
+    @jwt_required()
     def post(self):
         """Register a new place"""
-        place_data = api.payload
+        place_data = dict(api.payload)
+        place_data['owner_id'] = get_jwt_identity()
         try:
             new_place = facade.create_place(place_data)
         except (ValueError, KeyError) as e:
@@ -58,7 +62,7 @@ class PlaceList(Resource):
                  'longitude': p.longitude} for p in places], 200
 
 
-@api.route('/<place_id>')
+@api.route('/')
 class PlaceResource(Resource):
     @api.response(200, 'Place details retrieved successfully')
     @api.response(404, 'Place not found')
@@ -80,21 +84,39 @@ class PlaceResource(Resource):
 
     @api.expect(place_model)
     @api.response(200, 'Place updated successfully')
+    @api.response(403, 'Unauthorized action')
     @api.response(404, 'Place not found')
     @api.response(400, 'Invalid input data')
+    @jwt_required()
     def put(self, place_id):
         """Update a place's information"""
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
+        if place.owner.id != get_jwt_identity():
+            return {'error': 'Unauthorized action'}, 403
         try:
             facade.update_place(place_id, api.payload)
         except ValueError as e:
             return {'error': str(e)}, 400
         return {'message': 'Place updated successfully'}, 200
 
+    @api.response(200, 'Place deleted successfully')
+    @api.response(403, 'Unauthorized action')
+    @api.response(404, 'Place not found')
+    @jwt_required()
+    def delete(self, place_id):
+        """Delete a place"""
+        place = facade.get_place(place_id)
+        if not place:
+            return {'error': 'Place not found'}, 404
+        if place.owner.id != get_jwt_identity():
+            return {'error': 'Unauthorized action'}, 403
+        facade.delete_place(place_id)
+        return {'message': 'Place deleted successfully'}, 200
 
-@api.route('/<place_id>/reviews')
+
+@api.route('//reviews')
 class PlaceReviewList(Resource):
     @api.response(200, 'List of reviews for the place retrieved successfully')
     @api.response(404, 'Place not found')
