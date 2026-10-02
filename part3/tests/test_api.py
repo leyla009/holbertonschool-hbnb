@@ -192,5 +192,31 @@ class TestReviews(APITestCase):
         self.assertEqual(self.client.get(f'/api/v1/places/{pid}/reviews').get_json(), [])
 
 
+class TestAuth(APITestCase):
+    def test_login_and_protected(self):
+        email = f"{uuid.uuid4().hex[:10]}@example.com"
+        self.new_user(email=email, password="secret123")
+
+        r = self.client.post('/api/v1/auth/login',
+                             json={"email": email, "password": "secret123"})
+        self.assertEqual(r.status_code, 200)
+        token = r.get_json()['access_token']
+
+        ok = self.client.get('/api/v1/auth/protected',
+                             headers={'Authorization': f'Bearer {token}'})
+        self.assertEqual(ok.status_code, 200)
+        self.assertFalse(ok.get_json()['is_admin'])
+        self.assertEqual(self.client.get('/api/v1/auth/protected').status_code, 401)
+
+    def test_bad_credentials(self):
+        email = f"{uuid.uuid4().hex[:10]}@example.com"
+        self.new_user(email=email, password="secret123")
+        bad = self.client.post('/api/v1/auth/login',
+                               json={"email": email, "password": "wrong"})
+        self.assertEqual(bad.status_code, 401)
+        nobody = self.client.post('/api/v1/auth/login',
+                                  json={"email": "nobody@example.com", "password": "x"})
+        self.assertEqual(nobody.status_code, 401)
+
 if __name__ == '__main__':
     unittest.main()
