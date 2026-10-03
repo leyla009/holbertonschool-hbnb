@@ -1,9 +1,3 @@
-// Base URL of the HBnB API (Part 3), which runs on port 5000.
-// - On your own machine the page and the API are both on 127.0.0.1.
-// - In GitHub Codespaces the browser is NOT on the same machine as the server,
-//   so 127.0.0.1 would point at your computer. Each port gets its own public
-//   address instead (<name>-8000.app.github.dev, <name>-5000.app.github.dev),
-//   so we swap the port in the page's own address to find the API.
 const API_URL = (() => {
   const codespace = window.location.hostname.match(/^(.*)-\d+\.app\.github\.dev$/);
   if (codespace) {
@@ -16,6 +10,18 @@ const API_URL = (() => {
 function setCookie(name, value) {
   // Session cookie available on every page of the site.
   document.cookie = `${name}=${value}; path=/; SameSite=Lax`;
+}
+
+function getCookie(name) {
+  // document.cookie looks like "a=1; token=xyz; b=2": split it and find our name.
+  const cookies = document.cookie ? document.cookie.split('; ') : [];
+  for (const cookie of cookies) {
+    const separator = cookie.indexOf('=');
+    if (cookie.slice(0, separator) === name) {
+      return cookie.slice(separator + 1);
+    }
+  }
+  return null;
 }
 
 /* ---------- Login ---------- */
@@ -65,7 +71,99 @@ async function loginUser(email, password) {
   showLoginError(`Login failed: ${detail}`);
 }
 
+/* ---------- Authentication state ---------- */
+function checkAuthentication() {
+  const token = getCookie('token');
+  const loginLink = document.getElementById('login-link');
+
+  // Login link only for visitors who are not logged in.
+  if (loginLink) {
+    loginLink.style.display = token ? 'none' : '';
+  }
+  return token;
+}
+
+/* ---------- Index: list of places ---------- */
+async function fetchPlaces(token) {
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/places/`, { method: 'GET', headers });
+    if (!response.ok) {
+      showPlacesMessage(`Could not load places (${response.status} ${response.statusText}).`);
+      return;
+    }
+    const places = await response.json();
+    displayPlaces(places);
+  } catch (error) {
+    showPlacesMessage('Could not reach the server. Please try again later.');
+  }
+}
+
+function showPlacesMessage(message) {
+  const placesList = document.getElementById('places-list');
+  placesList.innerHTML = '';
+  const paragraph = document.createElement('p');
+  paragraph.textContent = message;
+  placesList.appendChild(paragraph);
+}
+
+function displayPlaces(places) {
+  const placesList = document.getElementById('places-list');
+  placesList.innerHTML = ''; // remove the static sample cards
+
+  if (places.length === 0) {
+    showPlacesMessage('No places available yet.');
+    return;
+  }
+
+  places.forEach((place) => {
+    const card = document.createElement('article');
+    card.className = 'place-card';
+    card.dataset.price = place.price; // used by the price filter
+
+    // textContent (not innerHTML) so a title can never inject HTML.
+    const title = document.createElement('h2');
+    title.textContent = place.title;
+
+    const price = document.createElement('p');
+    price.className = 'price';
+    price.textContent = `$${place.price} per night`;
+
+    const link = document.createElement('a');
+    link.className = 'details-button';
+    link.href = `place.html?id=${encodeURIComponent(place.id)}`;
+    link.textContent = 'View Details';
+
+    card.append(title, price, link);
+    placesList.appendChild(card);
+  });
+
+  // Respect whatever the dropdown currently says (e.g. after a back-navigation).
+  filterPlaces(document.getElementById('price-filter').value);
+}
+
+function filterPlaces(maxPrice) {
+  document.querySelectorAll('#places-list .place-card').forEach((card) => {
+    const withinPrice = maxPrice === 'All' || Number(card.dataset.price) <= Number(maxPrice);
+    card.style.display = withinPrice ? '' : 'none';
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const token = checkAuthentication();
+
+  // Index page: load the places and wire up the price filter.
+  if (document.getElementById('places-list')) {
+    fetchPlaces(token);
+    document.getElementById('price-filter').addEventListener('change', (event) => {
+      filterPlaces(event.target.value);
+    });
+  }
+
   const loginForm = document.getElementById('login-form');
 
   if (loginForm) {
