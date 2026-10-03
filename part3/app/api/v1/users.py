@@ -1,6 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services import facade
+from app.api.v1.utils import admin_required, current_user_is_admin
 
 api = Namespace('users', description='User operations')
 
@@ -9,11 +10,14 @@ user_model = api.model('User', {
     'last_name': fields.String(required=True, description='Last name of the user'),
     'email': fields.String(required=True, description='Email of the user'),
     'password': fields.String(required=True, description='Password of the user'),
+    'is_admin': fields.Boolean(description='Administrator flag (admin only)'),
 })
 
 user_update_model = api.model('UserUpdate', {
     'first_name': fields.String(description='First name of the user'),
     'last_name': fields.String(description='Last name of the user'),
+    'email': fields.String(description='Email (admin only)'),
+    'password': fields.String(description='Password (admin only)'),
 })
 
 
@@ -31,8 +35,10 @@ class UserList(Resource):
     @api.expect(user_model, validate=True)
     @api.response(201, 'User successfully created')
     @api.response(400, 'Email already registered or invalid input data')
+    @api.response(403, 'Admin privileges required')
+    @admin_required
     def post(self):
-        """Register a new user"""
+        """Register a new user (admin only)"""
         try:
             new_user = facade.create_user(api.payload)
         except ValueError as e:
@@ -63,13 +69,18 @@ class UserResource(Resource):
     @api.response(400, 'Invalid input data')
     @jwt_required()
     def put(self, user_id):
-        """Update your own user information (not email or password)"""
-        if user_id != get_jwt_identity():
+        """Update a user: your own name (users), or any field of any user (admin)"""
+        admin = current_user_is_admin()
+        if not admin and user_id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         payload = api.payload
-        if 'email' in payload or 'password' in payload:
-            return {'error': 'You cannot modify email or password'}, 400
-        data = {k: payload[k] for k in ('first_name', 'last_name') if k in payload}
+        if admin:
+            allowed = ('first_name', 'last_name', 'email', 'password')
+        else:
+            if 'email' in payload or 'password' in payload:
+                return {'error': 'You cannot modify email or password'}, 400
+            allowed = ('first_name', 'last_name')
+        data = {k: payload[k] for k in allowed if k in payload}
         try:
             user = facade.update_user(user_id, data)
         except ValueError as e:

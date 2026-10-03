@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.api.v1.utils import current_user_is_admin
 from app.services import facade
 
 api = Namespace('reviews', description='Review operations')
@@ -70,11 +71,11 @@ class ReviewResource(Resource):
     @api.response(403, 'Unauthorized action')
     @jwt_required()
     def put(self, review_id):
-        """Update a review (author only)"""
+        """Update a review (author or admin)"""
         review = facade.get_review(review_id)
         if not review:
             return {'error': 'Review not found'}, 404
-        if review.user.id != get_jwt_identity():
+        if not current_user_is_admin() and review.user.id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         try:
             facade.update_review(review_id, api.payload)
@@ -87,11 +88,11 @@ class ReviewResource(Resource):
     @api.response(404, 'Review not found')
     @jwt_required()
     def delete(self, review_id):
-        """Delete a review (author only)"""
+        """Delete a review (author or admin)"""
         review = facade.get_review(review_id)
         if not review:
             return {'error': 'Review not found'}, 404
-        if review.user.id != get_jwt_identity():
+        if not current_user_is_admin() and review.user.id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         facade.delete_review(review_id)
         return {'message': 'Review deleted successfully'}, 200

@@ -2,6 +2,7 @@ import unittest
 import uuid
 from app import create_app
 from app.services import facade
+from config import Config
 
 
 class APITestCase(unittest.TestCase):
@@ -9,30 +10,38 @@ class APITestCase(unittest.TestCase):
         app = create_app()
         app.testing = True
         self.client = app.test_client()
+        self.admin = self.login(Config.ADMIN_EMAIL, Config.ADMIN_PASSWORD)
 
     # ---- helpers (unique emails because the facade keeps data between tests) ----
+    def login(self, email, password):
+        r = self.client.post('/api/v1/auth/login',
+                             json={"email": email, "password": password})
+        return {"email": email, "token": r.get_json()['access_token']}
+
     def new_user(self, **overrides):
+        """Create a user through the API (admin only), as the admin by default."""
+        headers = overrides.pop('headers', None) or self.auth(self.admin)
         data = {"first_name": "Test", "last_name": "User",
                 "email": f"{uuid.uuid4().hex[:10]}@example.com",
                 "password": "secret123"}
         data.update(overrides)
-        return self.client.post('/api/v1/users/', json=data)
+        return self.client.post('/api/v1/users/', json=data, headers=headers)
 
     def make_user(self, **overrides):
         """Register a user, log in, and return {'id', 'email', 'token'}."""
         email = f"{uuid.uuid4().hex[:10]}@example.com"
         r = self.new_user(email=email, **overrides)
-        login = self.client.post('/api/v1/auth/login',
-                                 json={"email": email, "password": "secret123"})
-        return {"id": r.get_json()['id'], "email": email,
-                "token": login.get_json()['access_token']}
+        user = self.login(email, "secret123")
+        user["id"] = r.get_json()['id']
+        return user
 
     @staticmethod
     def auth(user):
         return {'Authorization': f"Bearer {user['token']}"}
 
     def new_amenity(self, name="Wi-Fi"):
-        return self.client.post('/api/v1/amenities/', json={"name": name})
+        return self.client.post('/api/v1/amenities/', json={"name": name},
+                                headers=self.auth(self.admin))
 
     def new_place(self, user, **overrides):
         data = {"title": "Cozy flat", "description": "Nice", "price": 80,
@@ -60,7 +69,8 @@ class TestUsers(APITestCase):
 
     def test_password_required(self):
         r = self.client.post('/api/v1/users/', json={
-            "first_name": "A", "last_name": "B", "email": "nopass@example.com"})
+            "first_name": "A", "last_name": "B", "email": "nopass@example.com"},
+            headers=self.auth(self.admin))
         self.assertEqual(r.status_code, 400)
         self.assertEqual(self.new_user(password="").status_code, 400)
 
@@ -73,7 +83,8 @@ class TestUsers(APITestCase):
         self.assertEqual(self.new_user(email="nope").status_code, 400)
         self.assertEqual(self.new_user(first_name="").status_code, 400)
         self.assertEqual(self.new_user(last_name="x" * 51).status_code, 400)
-        r = self.client.post('/api/v1/users/', json={"first_name": "A"})
+        r = self.client.post('/api/v1/users/', json={"first_name": "A"},
+                             headers=self.auth(self.admin))
         self.assertEqual(r.status_code, 400)
 
     def test_list(self):
@@ -145,22 +156,36 @@ class TestAmenities(APITestCase):
         self.assertEqual(r.status_code, 201)
         aid = r.get_json()['id']
         self.assertEqual(self.client.get(f'/api/v1/amenities/{aid}').status_code, 200)
-        u = self.client.put(f'/api/v1/amenities/{aid}', json={"name": "Pool"})
+        u = self.client.put(f'/api/v1/amenities/{aid}', json={"name": "Pool"},
+                            headers=self.auth(self.admin))
         self.assertEqual(u.status_code, 200)
         self.assertEqual(u.get_json()['name'], "Pool")
 
     def test_invalid(self):
         self.assertEqual(self.new_amenity(name="").status_code, 400)
-        self.assertEqual(self.client.post('/api/v1/amenities/', json={}).status_code, 400)
+        h = self.auth(self.admin)
+        self.assertEqual(self.client.post('/api/v1/amenities/', json={}, headers=h).status_code, 400)
         aid = self.new_amenity().get_json()['id']
-        self.assertEqual(self.client.put(f'/api/v1/amenities/{aid}', json={"name": ""}).status_code, 400)
+        self.assertEqual(self.client.put(f'/api/v1/amenities/{aid}', json={"name": ""}, headers=h).status_code, 400)
 
     def test_not_found(self):
         self.assertEqual(self.client.get('/api/v1/amenities/nope').status_code, 404)
-        self.assertEqual(self.client.put('/api/v1/amenities/nope', json={"name": "X"}).status_code, 404)
+        r = self.client.put('/api/v1/amenities/nope', json={"name": "X"},
+                            headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 404)
 
     def test_list(self):
         self.assertEqual(self.client.get('/api/v1/amenities/').status_code, 200)
+
+    def test_write_requires_admin(self):
+        user = self.make_user()
+        aid = self.new_amenity().get_json()['id']
+        for h, expected in (({}, 401), (self.auth(user), 403)):
+            p = self.client.post('/api/v1/amenities/', json={"name": "Sauna"}, headers=h)
+            u = self.client.put(f'/api/v1/amenities/{aid}', json={"name": "Sauna"}, headers=h)
+            self.assertEqual(p.status_code, expected)
+            self.assertEqual(u.status_code, expected)
+        self.assertEqual(self.client.get(f'/api/v1/amenities/{aid}').get_json()['name'], "Wi-Fi")
 
 
 class TestPlaces(APITestCase):
@@ -309,6 +334,86 @@ class TestReviews(APITestCase):
         rid = self.new_review(self.reviewer, pid).get_json()['id']
         self.client.delete(f'/api/v1/reviews/{rid}', headers=self.auth(self.reviewer))
         self.assertEqual(self.client.get(f'/api/v1/places/{pid}/reviews').get_json(), [])
+
+
+class TestAdmin(APITestCase):
+    def test_only_admin_can_create_users(self):
+        user = self.make_user()
+        payload = {"first_name": "N", "last_name": "U",
+                   "email": f"{uuid.uuid4().hex[:10]}@example.com", "password": "secret123"}
+        self.assertEqual(self.client.post('/api/v1/users/', json=payload).status_code, 401)
+        r = self.client.post('/api/v1/users/', json=payload, headers=self.auth(user))
+        self.assertEqual(r.status_code, 403)
+        r = self.client.post('/api/v1/users/', json=payload, headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 201)
+
+    def test_admin_can_create_another_admin(self):
+        email = f"{uuid.uuid4().hex[:10]}@example.com"
+        r = self.new_user(email=email, is_admin=True)
+        self.assertEqual(r.status_code, 201)
+        token = self.login(email, "secret123")
+        r = self.client.get('/api/v1/auth/protected', headers=self.auth(token))
+        self.assertTrue(r.get_json()['is_admin'])
+
+    def test_admin_modifies_any_user_including_email_and_password(self):
+        user = self.make_user()
+        url = f"/api/v1/users/{user['id']}"
+        new_email = f"{uuid.uuid4().hex[:10]}@example.com"
+        r = self.client.put(url, json={"first_name": "Changed", "email": new_email,
+                                       "password": "brandnew123"},
+                            headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.get_json()['email'], new_email)
+        stored = facade.get_user(user['id'])
+        self.assertNotEqual(stored.password, "brandnew123")
+        self.assertTrue(stored.verify_password("brandnew123"))
+        self.assertFalse(stored.verify_password("secret123"))
+
+    def test_admin_cannot_take_an_existing_email(self):
+        a, b = self.make_user(), self.make_user()
+        r = self.client.put(f"/api/v1/users/{b['id']}", json={"email": a['email']},
+                            headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 400)
+
+    def test_admin_update_errors(self):
+        r = self.client.put('/api/v1/users/nope', json={"first_name": "X"},
+                            headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 404)
+        user = self.make_user()
+        r = self.client.put(f"/api/v1/users/{user['id']}", json={"email": "not-an-email"},
+                            headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 400)
+        r = self.client.put(f"/api/v1/users/{user['id']}", json={"password": ""},
+                            headers=self.auth(self.admin))
+        self.assertEqual(r.status_code, 400)
+
+    def test_admin_bypasses_place_ownership(self):
+        owner = self.make_user()
+        pid = self.new_place(owner).get_json()['id']
+        url = f'/api/v1/places/{pid}'
+        h = self.auth(self.admin)
+        r = self.client.put(url, json={"title": "By admin"}, headers=h)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.client.get(url).get_json()['title'], "By admin")
+        self.assertEqual(self.client.delete(url, headers=h).status_code, 200)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_admin_bypasses_review_ownership(self):
+        owner, reviewer = self.make_user(), self.make_user()
+        pid = self.new_place(owner).get_json()['id']
+        h = self.auth(self.admin)
+        rid = self.new_review(reviewer, pid).get_json()['id']
+        url = f'/api/v1/reviews/{rid}'
+        self.assertEqual(self.client.put(url, json={"text": "Edited"}, headers=h).status_code, 200)
+        self.assertEqual(self.client.get(url).get_json()['text'], "Edited")
+        self.assertEqual(self.client.delete(url, headers=h).status_code, 200)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_regular_user_still_restricted(self):
+        owner, other = self.make_user(), self.make_user()
+        pid = self.new_place(owner).get_json()['id']
+        r = self.client.put(f'/api/v1/places/{pid}', json={"title": "x"}, headers=self.auth(other))
+        self.assertEqual(r.status_code, 403)
 
 
 if __name__ == '__main__':

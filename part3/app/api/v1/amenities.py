@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from app.services import facade
+from app.api.v1.utils import admin_required
 
 api = Namespace('amenities', description='Amenity operations')
 
@@ -17,8 +18,10 @@ class AmenityList(Resource):
     @api.expect(amenity_model, validate=True)
     @api.response(201, 'Amenity successfully created')
     @api.response(400, 'Invalid input data')
+    @api.response(403, 'Admin privileges required')
+    @admin_required
     def post(self):
-        """Register a new amenity"""
+        """Register a new amenity (admin only)"""
         try:
             amenity = facade.create_amenity(api.payload)
         except ValueError as e:
@@ -46,8 +49,10 @@ class AmenityResource(Resource):
     @api.response(200, 'Amenity updated successfully')
     @api.response(404, 'Amenity not found')
     @api.response(400, 'Invalid input data')
+    @api.response(403, 'Admin privileges required')
+    @admin_required
     def put(self, amenity_id):
-        """Update an amenity's information"""
+        """Update an amenity's information (admin only)"""
         try:
             amenity = facade.update_amenity(amenity_id, api.payload)
         except ValueError as e:

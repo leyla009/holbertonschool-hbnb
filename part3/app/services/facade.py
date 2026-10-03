@@ -35,8 +35,13 @@ class HBnBFacade:
         new_email = user_data.get('email')
         if new_email and new_email != user.email and self.get_user_by_email(new_email):
             raise ValueError("Email already registered")
-        user_data = {k: v for k, v in user_data.items() if k != 'password'}
-        user.update(user_data)
+        data = dict(user_data)
+        password = data.pop('password', None)
+        if password is not None and (not isinstance(password, str) or not password):
+            raise ValueError("password must be a non-empty string")
+        user.update(data)
+        if password is not None:
+            user.hash_password(password)
         return user
 
     # ---------- Amenities ----------

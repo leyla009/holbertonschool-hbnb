@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.api.v1.utils import current_user_is_admin
 from app.services import facade
 
 api = Namespace('places', description='Place operations')
@@ -87,11 +88,11 @@ class PlaceResource(Resource):
     @api.response(403, 'Unauthorized action')
     @jwt_required()
     def put(self, place_id):
-        """Update a place's information (owner only)"""
+        """Update a place's information (owner or admin)"""
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
-        if place.owner.id != get_jwt_identity():
+        if not current_user_is_admin() and place.owner.id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         try:
             facade.update_place(place_id, api.payload)
@@ -104,11 +105,11 @@ class PlaceResource(Resource):
     @api.response(404, 'Place not found')
     @jwt_required()
     def delete(self, place_id):
-        """Delete a place (owner only)"""
+        """Delete a place (owner or admin)"""
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
-        if place.owner.id != get_jwt_identity():
+        if not current_user_is_admin() and place.owner.id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         facade.delete_place(place_id)
         return {'message': 'Place deleted successfully'}, 200
