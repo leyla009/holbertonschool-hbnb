@@ -6,11 +6,13 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-only-jwt-secret-change-me-in-production-0123456789')
     ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@hbnb.io')
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin1234')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     DEBUG = False
 
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///development.db')
 
 
 config = {

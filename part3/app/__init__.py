@@ -8,6 +8,7 @@ from app.api.v1.places import api as places_ns
 from app.api.v1.reviews import api as reviews_ns
 from app.api.v1.auth import api as auth_ns
 from app.services import facade
+from app.extensions import db
 
 
 bcrypt = Bcrypt()
@@ -29,7 +30,8 @@ def create_app(config_class="config.DevelopmentConfig"):
     app.config.from_object(config_class)
     bcrypt.init_app(app)
     jwt.init_app(app)
-    seed_admin(app)
+    db.init_app(app)
+    # seed_admin(app)  # re-enable in Task 6, once User is mapped and tables exist
     api = Api(app, version='1.0', title='HBnB API',
               description='HBnB Application API', doc='/api/v1/')
     api.add_namespace(users_ns, path='/api/v1/users')
