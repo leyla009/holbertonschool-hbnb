@@ -2,6 +2,7 @@ from flask import Flask
 from flask_restx import Api
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 from app.api.v1.users import api as users_ns
 from app.api.v1.amenities import api as amenities_ns
 from app.api.v1.places import api as places_ns
@@ -28,6 +29,8 @@ def seed_admin(app):
 def create_app(config_class="config.DevelopmentConfig"):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    # Let the Part 4 front end (served from another origin/port) call the API.
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
     bcrypt.init_app(app)
     jwt.init_app(app)
     db.init_app(app)
