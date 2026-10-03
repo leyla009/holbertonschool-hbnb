@@ -10,7 +10,7 @@ class User(BaseModel):
     _last_name = db.Column('last_name', db.String(50), nullable=False)
     _email = db.Column('email', db.String(120), nullable=False, unique=True)
     password = db.Column(db.String(128), nullable=False)
-    _is_admin = db.Column('is_admin', db.Boolean, nullable=False, default=False)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
 
     def __init__(self, first_name, last_name, email, is_admin=False,
                  password=None):
