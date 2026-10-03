@@ -81,7 +81,8 @@ class PlaceResource(Resource):
                           'email': owner.email},
                 'amenities': [{'id': a.id, 'name': a.name} for a in place.amenities],
                 'reviews': [{'id': r.id, 'text': r.text, 'rating': r.rating,
-                             'user_id': r.user_id}
+                             'user_id': r.user_id,
+                             'user_name': f'{r.user.first_name} {r.user.last_name}'}
                             for r in place.reviews]}, 200
 
     @api.expect(place_model)
