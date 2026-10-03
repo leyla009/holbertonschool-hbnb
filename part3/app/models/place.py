@@ -1,8 +1,32 @@
+from app.extensions import db
 from app.models.base_model import BaseModel
 from app.models.user import User
 
 
+# many Places <-> many Amenities
+place_amenity = db.Table(
+    'place_amenity',
+    db.Column('place_id', db.String(36), db.ForeignKey('places.id'), primary_key=True),
+    db.Column('amenity_id', db.String(36), db.ForeignKey('amenities.id'), primary_key=True),
+)
+
+
 class Place(BaseModel):
+    __tablename__ = 'places'
+
+    _title = db.Column('title', db.String(100), nullable=False)
+    _description = db.Column('description', db.String(1024), nullable=True)
+    _price = db.Column('price', db.Float, nullable=False)
+    _latitude = db.Column('latitude', db.Float, nullable=False)
+    _longitude = db.Column('longitude', db.Float, nullable=False)
+    owner_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+
+    owner = db.relationship('User', back_populates='places')
+    reviews = db.relationship('Review', back_populates='place',
+                              cascade='all, delete-orphan')
+    amenities = db.relationship('Amenity', secondary=place_amenity,
+                                back_populates='places')
+
     def __init__(self, title, description, price, latitude, longitude, owner):
         super().__init__()
         self.title = title
@@ -10,9 +34,9 @@ class Place(BaseModel):
         self.price = price
         self.latitude = latitude
         self.longitude = longitude
+        if not isinstance(owner, User):
+            raise ValueError("owner must be a User instance")
         self.owner = owner
-        self.reviews = []
-        self.amenities = []
 
     @property
     def title(self):
@@ -64,18 +88,9 @@ class Place(BaseModel):
             raise ValueError("longitude must be between -180 and 180")
         self._longitude = float(value)
 
-    @property
-    def owner(self):
-        return self._owner
-
-    @owner.setter
-    def owner(self, value):
-        if not isinstance(value, User):
-            raise ValueError("owner must be a User instance")
-        self._owner = value
-
     def add_review(self, review):
-        self.reviews.append(review)
+        if review not in self.reviews:
+            self.reviews.append(review)
 
     def add_amenity(self, amenity):
         if amenity not in self.amenities:

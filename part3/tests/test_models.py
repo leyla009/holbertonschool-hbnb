@@ -43,11 +43,21 @@ class TestModels(unittest.TestCase):
     def test_relationships(self):
         review = Review("Nice", 5, self.place, self.user)
         amenity = Amenity("Wi-Fi")
-        self.place.add_review(review)
         self.place.add_amenity(amenity)
         self.place.add_amenity(amenity)  # no duplicates
+        self.assertIs(self.place.owner, self.user)
+        self.assertEqual(self.user.places, [self.place])
         self.assertEqual(self.place.reviews, [review])
+        self.assertEqual(self.user.reviews, [review])
+        self.assertIs(review.place, self.place)
         self.assertEqual(self.place.amenities, [amenity])
+        self.assertEqual(amenity.places, [self.place])
+
+    def test_review_needs_a_place_and_a_user(self):
+        with self.assertRaises(ValueError):
+            Review("ok", 5, "not a place", self.user)
+        with self.assertRaises(ValueError):
+            Review("ok", 5, self.place, "not a user")
 
     def test_update_changes_updated_at(self):
         before = self.user.updated_at

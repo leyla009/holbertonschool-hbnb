@@ -217,6 +217,25 @@ class TestPlaces(APITestCase):
         self.assertEqual(g['amenities'][0]['name'], "Wi-Fi")
         self.assertEqual(g['reviews'], [])
 
+    def test_update_amenities(self):
+        pid = self.new_place(self.owner, amenities=[self.amenity['id']]).get_json()['id']
+        url = f'/api/v1/places/{pid}'
+        pool = self.new_amenity("Pool").get_json()
+        r = self.client.put(url, json={"amenities": [pool['id']]}, headers=self.auth(self.owner))
+        self.assertEqual(r.status_code, 200)
+        names = [a['name'] for a in self.client.get(url).get_json()['amenities']]
+        self.assertEqual(names, ["Pool"])
+        bad = self.client.put(url, json={"amenities": ["nope"]}, headers=self.auth(self.owner))
+        self.assertEqual(bad.status_code, 400)
+        names = [a['name'] for a in self.client.get(url).get_json()['amenities']]
+        self.assertEqual(names, ["Pool"])
+
+    def test_owner_has_places(self):
+        pid = self.new_place(self.owner).get_json()['id']
+        with self.app.app_context():
+            user = facade.get_user(self.owner['id'])
+            self.assertEqual([p.id for p in user.places], [pid])
+
     def test_create_requires_token(self):
         r = self.client.post('/api/v1/places/', json={
             "title": "T", "price": 10, "latitude": 1, "longitude": 1})
@@ -271,6 +290,12 @@ class TestPlaces(APITestCase):
         self.assertEqual(self.client.delete(url, headers=self.auth(self.owner)).status_code, 200)
         self.assertEqual(self.client.get(url).status_code, 404)
         self.assertEqual(self.client.delete(url, headers=self.auth(self.owner)).status_code, 404)
+
+    def test_delete_place_removes_its_reviews(self):
+        pid = self.new_place(self.owner).get_json()['id']
+        rid = self.new_review(self.other, pid).get_json()['id']
+        self.client.delete(f'/api/v1/places/{pid}', headers=self.auth(self.owner))
+        self.assertEqual(self.client.get(f'/api/v1/reviews/{rid}').status_code, 404)
 
 
 class TestReviews(APITestCase):

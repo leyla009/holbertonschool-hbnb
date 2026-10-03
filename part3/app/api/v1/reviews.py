@@ -22,8 +22,8 @@ def serialize_review(review):
         'id': review.id,
         'text': review.text,
         'rating': review.rating,
-        'user_id': review.user.id,
-        'place_id': review.place.id,
+        'user_id': review.user_id,
+        'place_id': review.place_id,
     }
 
 
@@ -75,7 +75,7 @@ class ReviewResource(Resource):
         review = facade.get_review(review_id)
         if not review:
             return {'error': 'Review not found'}, 404
-        if not current_user_is_admin() and review.user.id != get_jwt_identity():
+        if not current_user_is_admin() and review.user_id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         try:
             facade.update_review(review_id, api.payload)
@@ -92,7 +92,7 @@ class ReviewResource(Resource):
         review = facade.get_review(review_id)
         if not review:
             return {'error': 'Review not found'}, 404
-        if not current_user_is_admin() and review.user.id != get_jwt_identity():
+        if not current_user_is_admin() and review.user_id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         facade.delete_review(review_id)
         return {'message': 'Review deleted successfully'}, 200

@@ -12,6 +12,12 @@ class User(BaseModel):
     password = db.Column(db.String(128), nullable=False)
     _is_admin = db.Column('is_admin', db.Boolean, nullable=False, default=False)
 
+    # one User -> many Places / many Reviews
+    places = db.relationship('Place', back_populates='owner',
+                             cascade='all, delete-orphan')
+    reviews = db.relationship('Review', back_populates='user',
+                              cascade='all, delete-orphan')
+
     def __init__(self, first_name, last_name, email, is_admin=False,
                  password=None):
         super().__init__()

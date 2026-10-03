@@ -51,7 +51,7 @@ class PlaceList(Resource):
         return {'id': new_place.id, 'title': new_place.title,
                 'description': new_place.description, 'price': new_place.price,
                 'latitude': new_place.latitude, 'longitude': new_place.longitude,
-                'owner_id': new_place.owner.id}, 201
+                'owner_id': new_place.owner_id}, 201
 
     @api.response(200, 'List of places retrieved successfully')
     def get(self):
@@ -70,16 +70,18 @@ class PlaceResource(Resource):
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
+        owner = place.owner
         return {'id': place.id, 'title': place.title,
                 'description': place.description, 'price': place.price,
                 'latitude': place.latitude, 'longitude': place.longitude,
-                'owner': {'id': place.owner.id,
-                          'first_name': place.owner.first_name,
-                          'last_name': place.owner.last_name,
-                          'email': place.owner.email},
+                'owner': {'id': owner.id,
+                          'first_name': owner.first_name,
+                          'last_name': owner.last_name,
+                          'email': owner.email},
                 'amenities': [{'id': a.id, 'name': a.name} for a in place.amenities],
                 'reviews': [{'id': r.id, 'text': r.text, 'rating': r.rating,
-                             'user_id': r.user.id} for r in place.reviews]}, 200
+                             'user_id': r.user_id}
+                            for r in place.reviews]}, 200
 
     @api.expect(place_model)
     @api.response(200, 'Place updated successfully')
@@ -92,7 +94,7 @@ class PlaceResource(Resource):
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
-        if not current_user_is_admin() and place.owner.id != get_jwt_identity():
+        if not current_user_is_admin() and place.owner_id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         try:
             facade.update_place(place_id, api.payload)
@@ -109,7 +111,7 @@ class PlaceResource(Resource):
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
-        if not current_user_is_admin() and place.owner.id != get_jwt_identity():
+        if not current_user_is_admin() and place.owner_id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
         facade.delete_place(place_id)
         return {'message': 'Place deleted successfully'}, 200
