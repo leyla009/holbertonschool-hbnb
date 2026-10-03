@@ -1,62 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HBnB - Place Details</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="images/icon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Details</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="images/icon.png">
 </head>
 <body>
-  <header>
-    <a href="index.html"><img class="logo" src="images/logo.png" alt="HBnB logo"></a>
-    <nav>
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="login.html">Login</a></li>
-      </ul>
-    </nav>
-    <a class="login-button" href="login.html">Login</a>
-  </header>
+    <header>
+        <a href="index.html"><img class="logo" src="images/logo.png" alt="HBnB logo"></a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html" id="login-link" class="login-button">Login</a>
+        </nav>
+    </header>
+    <main>
+        <section id="place-details" class="place-details">
+            <!-- Sample details for the design; meant to be populated dynamically later -->
+            <h1>Cozy Flat in the Old City</h1>
+            <div class="place-info">
+                <p><b>Host:</b> John Doe</p>
+                <p><b>Price per night:</b> $80</p>
+                <p><b>Description:</b> A bright, quiet flat a few minutes' walk from the old city walls, cafes and the seaside boulevard.</p>
+                <p><b>Amenities:</b></p>
+                <ul class="amenities">
+                    <li>WiFi</li>
+                    <li>Air Conditioning</li>
+                    <li>Swimming Pool</li>
+                </ul>
+            </div>
+        </section>
+        <section id="reviews">
+            <h2>Reviews</h2>
+            <!-- Sample reviews for the design; meant to be populated dynamically later -->
+            <article class="review-card">
+                <p class="comment">Great stay, spotless and very well located.</p>
+                <p class="reviewer"><b>Jane Roe:</b> <span class="rating">Rating: 5 / 5</span></p>
+            </article>
+            <article class="review-card">
+                <p class="comment">Comfortable, but the street can be noisy at night.</p>
+                <p class="reviewer"><b>Sam Lee:</b> <span class="rating">Rating: 4 / 5</span></p>
+            </article>
+        </section>
+        <section id="add-review" class="add-review">
+            <h2>Add a Review</h2>
+            <form id="review-form" class="form">
+                <label for="review-text">Review:</label>
+                <textarea id="review-text" name="review-text" rows="4" required></textarea>
 
-  <main>
-    <section class="place-details">
-      <h1>Cozy Flat in the Old City</h1>
+                <label for="rating">Rating:</label>
+                <select id="rating" name="rating" required>
+                    <option value="">Select a rating</option>
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Good</option>
+                    <option value="3">3 - Average</option>
+                    <option value="2">2 - Poor</option>
+                    <option value="1">1 - Terrible</option>
+                </select>
 
-      <div class="place-info">
-        <p><b>Host:</b> John Doe</p>
-        <p><b>Price per night:</b> $80</p>
-        <p><b>Description:</b> A bright, quiet flat a few minutes' walk from the old city walls, cafes and the seaside boulevard.</p>
-        <p><b>Amenities:</b></p>
-        <ul class="amenities">
-          <li>WiFi</li>
-          <li>Air Conditioning</li>
-          <li>Swimming Pool</li>
-        </ul>
-      </div>
-    </section>
+                <button type="submit" class="details-button">Submit</button>
+            </form>
+            <p class="more-link"><a class="details-button" href="add_review.html">Add a Review on its own page</a></p>
+        </section>
+    </main>
 
-    <section class="reviews">
-      <h2>Reviews</h2>
-
-      <article class="review-card">
-        <p class="comment">Great stay, spotless and very well located.</p>
-        <p class="reviewer"><b>Jane Roe:</b> <span class="rating">Rating: 5 / 5</span></p>
-      </article>
-
-      <article class="review-card">
-        <p class="comment">Comfortable, but the street can be noisy at night.</p>
-        <p class="reviewer"><b>Sam Lee:</b> <span class="rating">Rating: 4 / 5</span></p>
-      </article>
-    </section>
-
-    <section class="add-review-link">
-      <a class="details-button" href="add_review.html">Add a Review</a>
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2026 HBnB. All rights reserved.</p>
-  </footer>
+    <footer>
+        <p>&copy; 2026 HBnB. All rights reserved.</p>
+    </footer>
+    <script src="scripts.js"></script>
 </body>
 </html>

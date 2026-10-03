@@ -1,50 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HBnB - Add Review</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="images/icon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Review</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="images/icon.png">
 </head>
 <body>
-  <header>
-    <a href="index.html"><img class="logo" src="images/logo.png" alt="HBnB logo"></a>
-    <nav>
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="login.html">Login</a></li>
-      </ul>
-    </nav>
-    <a class="login-button" href="login.html">Login</a>
-  </header>
+    <header>
+        <a href="index.html"><img class="logo" src="images/logo.png" alt="HBnB logo"></a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html" id="login-link" class="login-button">Login</a>
+        </nav>
+    </header>
+    <main>
+        <section class="add-review">
+            <h1>Add a Review</h1>
+            <p class="subtitle">Place: <b>Cozy Flat in the Old City</b></p>
+            <form id="review-form" class="form">
+                <label for="review">Your Review:</label>
+                <textarea id="review" name="review" rows="5" required></textarea>
 
-  <main>
-    <section class="add-review">
-      <h1>Add a review</h1>
-      <p class="subtitle">Cozy Flat in the Old City</p>
+                <label for="rating">Rating:</label>
+                <select id="rating" name="rating" required>
+                    <option value="">Select a rating</option>
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Good</option>
+                    <option value="3">3 - Average</option>
+                    <option value="2">2 - Poor</option>
+                    <option value="1">1 - Terrible</option>
+                </select>
 
-      <form class="form" id="review-form" action="#" method="post">
-        <label for="review">Your review</label>
-        <textarea id="review" name="review" rows="5" placeholder="Tell others about your stay" required></textarea>
+                <button type="submit" class="details-button">Submit Review</button>
+            </form>
+        </section>
+    </main>
 
-        <label for="rating">Rating</label>
-        <select id="rating" name="rating" required>
-          <option value="">Select a rating</option>
-          <option value="5">5 - Excellent</option>
-          <option value="4">4 - Good</option>
-          <option value="3">3 - Average</option>
-          <option value="2">2 - Poor</option>
-          <option value="1">1 - Terrible</option>
-        </select>
-
-        <button type="submit" class="details-button">Submit review</button>
-      </form>
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2026 HBnB. All rights reserved.</p>
-  </footer>
+    <footer>
+        <p>&copy; 2026 HBnB. All rights reserved.</p>
+    </footer>
+    <script src="scripts.js"></script>
 </body>
 </html>

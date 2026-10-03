@@ -1,56 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HBnB - Places</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="images/icon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List of Places</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="images/icon.png">
 </head>
 <body>
-  <header>
-    <a href="index.html"><img class="logo" src="images/logo.png" alt="HBnB logo"></a>
-    <nav>
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="login.html">Login</a></li>
-      </ul>
-    </nav>
-    <a class="login-button" href="login.html">Login</a>
-  </header>
+    <header>
+        <a href="index.html"><img class="logo" src="images/logo.png" alt="HBnB logo"></a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="login.html" id="login-link" class="login-button">Login</a>
+        </nav>
+    </header>
+    <main>
+        <h1>Available places</h1>
+        <section id="filter">
+            <label for="price-filter">Max Price:</label>
+            <select id="price-filter">
+                <!-- Static options for the design; they can be replaced dynamically later -->
+                <option value="10">10</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="All" selected>All</option>
+            </select>
+        </section>
+        <section id="places-list">
+            <!-- Sample cards for the design; the list is meant to be populated dynamically later -->
+            <article class="place-card">
+                <h2>Cozy Flat in the Old City</h2>
+                <p class="price">$80 per night</p>
+                <a class="details-button" href="place.html">View Details</a>
+            </article>
+            <article class="place-card">
+                <h2>Seaside Villa with Pool</h2>
+                <p class="price">$220 per night</p>
+                <a class="details-button" href="place.html">View Details</a>
+            </article>
+            <article class="place-card">
+                <h2>Mountain Cabin Retreat</h2>
+                <p class="price">$135 per night</p>
+                <a class="details-button" href="place.html">View Details</a>
+            </article>
+            <article class="place-card">
+                <h2>Modern Loft Downtown</h2>
+                <p class="price">$110 per night</p>
+                <a class="details-button" href="place.html">View Details</a>
+            </article>
+        </section>
+    </main>
 
-  <main>
-    <h1>Available places</h1>
-
-    <section class="places-list">
-      <article class="place-card">
-        <h2>Cozy Flat in the Old City</h2>
-        <p class="price">$80 per night</p>
-        <a class="details-button" href="place.html">View Details</a>
-      </article>
-
-      <article class="place-card">
-        <h2>Seaside Villa with Pool</h2>
-        <p class="price">$220 per night</p>
-        <a class="details-button" href="place.html">View Details</a>
-      </article>
-
-      <article class="place-card">
-        <h2>Mountain Cabin Retreat</h2>
-        <p class="price">$135 per night</p>
-        <a class="details-button" href="place.html">View Details</a>
-      </article>
-
-      <article class="place-card">
-        <h2>Modern Loft Downtown</h2>
-        <p class="price">$110 per night</p>
-        <a class="details-button" href="place.html">View Details</a>
-      </article>
-    </section>
-  </main>
-
-  <footer>
-    <p>&copy; 2026 HBnB. All rights reserved.</p>
-  </footer>
+    <footer>
+        <p>&copy; 2026 HBnB. All rights reserved.</p>
+    </footer>
+    <script src="scripts.js"></script>
 </body>
 </html>
