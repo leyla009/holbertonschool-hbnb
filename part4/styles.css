@@ -265,3 +265,19 @@ footer {
     color: #a12a22;
     font-weight: bold;
 }
+
+/* ---------- Success message (add review) ---------- */
+.success-message {
+    max-width: 460px;
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #9fcfa6;
+    border-radius: 10px;
+    background-color: #eaf6ec;
+    color: #1f6b2c;
+    font-weight: bold;
+}
+
+[hidden] {
+    display: none !important;
+}

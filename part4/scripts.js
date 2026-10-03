@@ -289,6 +289,132 @@ function displayPlaceDetails(place) {
   }
 }
 
+/* ---------- Add review ---------- */
+// Shows a success/error box just above the review form (created on first use).
+function showReviewMessage(form, message, type) {
+  let box = document.getElementById('review-message');
+  if (!box) {
+    box = document.createElement('p');
+    box.id = 'review-message';
+    box.setAttribute('role', 'alert');
+    form.parentNode.insertBefore(box, form);
+  }
+  box.className = type === 'success' ? 'success-message' : 'error-message';
+  box.textContent = message;
+  box.hidden = false;
+}
+
+function clearReviewMessage() {
+  const box = document.getElementById('review-message');
+  if (box) {
+    box.textContent = '';
+    box.hidden = true;
+  }
+}
+
+// Works for both forms: place.html (#review-text) and add_review.html (#review).
+function getReviewText(form) {
+  const field = form.elements['review-text'] || form.elements['review'];
+  return field.value.trim();
+}
+
+async function submitReview(token, placeId, reviewText, rating) {
+  const response = await fetch(`${API_URL}/reviews/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      text: reviewText,
+      rating: parseInt(rating, 10), // the API wants an integer, the <select> gives a string
+      place_id: placeId
+    })
+  });
+  return response;
+}
+
+async function handleReviewResponse(response, form, token, placeId) {
+  if (response.ok) {
+    form.reset();
+    showReviewMessage(form, 'Review submitted successfully!', 'success');
+    // On the place page, reload the details so the new review shows up right away.
+    if (document.getElementById('place-details')) {
+      fetchPlaceDetails(token, placeId);
+    }
+    return;
+  }
+
+  // Expired or invalid token (401 / 422 from the JWT library).
+  if (response.status === 401 || response.status === 422) {
+    showReviewMessage(form, 'Your session has expired. Please log in again.', 'error');
+    return;
+  }
+
+  // The API explains business-rule failures, e.g. "You have already reviewed this place".
+  let detail = response.statusText;
+  try {
+    const data = await response.json();
+    detail = data.error || data.message || data.msg || detail;
+  } catch (e) {
+    // response was not JSON; keep the status text
+  }
+  showReviewMessage(form, `Failed to submit review: ${detail}`, 'error');
+}
+
+// On add_review.html, replace the sample place name with the real one.
+async function fillReviewPlaceName(token, placeId) {
+  const nameTag = document.querySelector('.add-review .subtitle b');
+  if (!nameTag) {
+    return;
+  }
+  try {
+    const response = await fetch(`${API_URL}/places/${encodeURIComponent(placeId)}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.ok) {
+      nameTag.textContent = (await response.json()).title;
+    } else {
+      nameTag.textContent = 'Unknown place';
+    }
+  } catch (e) {
+    // keep the sample text if the server is unreachable
+  }
+}
+
+function setupReviewForm(form, token, placeId) {
+  if (!placeId) {
+    showReviewMessage(form, 'No place selected. Go back to the list and pick one.', 'error');
+    form.querySelectorAll('input, textarea, select, button').forEach((field) => {
+      field.disabled = true;
+    });
+    return;
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    clearReviewMessage();
+
+    const reviewText = getReviewText(form);
+    const rating = form.elements['rating'].value;
+    if (!reviewText || !rating) {
+      showReviewMessage(form, 'Please write a review and choose a rating.', 'error');
+      return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      const response = await submitReview(token, placeId, reviewText, rating);
+      await handleReviewResponse(response, form, token, placeId);
+    } catch (error) {
+      showReviewMessage(form, 'Could not reach the server. Please try again.', 'error');
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const token = checkAuthentication();
 
@@ -312,6 +438,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       showPlaceMessage('No place selected. Go back to the list and pick one.');
+    }
+  }
+
+  // Review form (place.html and add_review.html).
+  const reviewForm = document.getElementById('review-form');
+  if (reviewForm) {
+    const placeId = getPlaceIdFromURL();
+
+    // The standalone add_review.html page is for logged-in users only.
+    // (On place.html the form is simply hidden for visitors, see checkAuthentication.)
+    const isStandalonePage = !document.getElementById('place-details');
+    if (isStandalonePage && !token) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    if (token) {
+      setupReviewForm(reviewForm, token, placeId);
+      if (isStandalonePage && placeId) {
+        fillReviewPlaceName(token, placeId);
+      }
     }
   }
 
