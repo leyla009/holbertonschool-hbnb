@@ -1,6 +1,6 @@
 from flask_restx import Namespace, Resource, fields
-from app.services import facade
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.services import facade
 
 api = Namespace('places', description='Place operations')
 
@@ -29,7 +29,6 @@ place_model = api.model('Place', {
     'price': fields.Float(required=True, description='Price per night'),
     'latitude': fields.Float(required=True, description='Latitude of the place'),
     'longitude': fields.Float(required=True, description='Longitude of the place'),
-    'owner_id': fields.String(required=False, description='ID of the owner'),
     'amenities': fields.List(fields.String, required=True, description="List of amenities ID's")
 })
 
@@ -39,10 +38,9 @@ class PlaceList(Resource):
     @api.expect(place_model)
     @api.response(201, 'Place successfully created')
     @api.response(400, 'Invalid input data')
-    @api.response(401, 'Unauthorized')
     @jwt_required()
     def post(self):
-        """Register a new place"""
+        """Register a new place (the owner is the authenticated user)"""
         place_data = dict(api.payload)
         place_data['owner_id'] = get_jwt_identity()
         try:
@@ -62,7 +60,7 @@ class PlaceList(Resource):
                  'longitude': p.longitude} for p in places], 200
 
 
-@api.route('/')
+@api.route('/<place_id>')
 class PlaceResource(Resource):
     @api.response(200, 'Place details retrieved successfully')
     @api.response(404, 'Place not found')
@@ -84,12 +82,12 @@ class PlaceResource(Resource):
 
     @api.expect(place_model)
     @api.response(200, 'Place updated successfully')
-    @api.response(403, 'Unauthorized action')
     @api.response(404, 'Place not found')
     @api.response(400, 'Invalid input data')
+    @api.response(403, 'Unauthorized action')
     @jwt_required()
     def put(self, place_id):
-        """Update a place's information"""
+        """Update a place's information (owner only)"""
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
@@ -106,7 +104,7 @@ class PlaceResource(Resource):
     @api.response(404, 'Place not found')
     @jwt_required()
     def delete(self, place_id):
-        """Delete a place"""
+        """Delete a place (owner only)"""
         place = facade.get_place(place_id)
         if not place:
             return {'error': 'Place not found'}, 404
@@ -116,7 +114,7 @@ class PlaceResource(Resource):
         return {'message': 'Place deleted successfully'}, 200
 
 
-@api.route('//reviews')
+@api.route('/<place_id>/reviews')
 class PlaceReviewList(Resource):
     @api.response(200, 'List of reviews for the place retrieved successfully')
     @api.response(404, 'Place not found')

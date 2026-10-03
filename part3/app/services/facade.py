@@ -35,9 +35,11 @@ class HBnBFacade:
         new_email = user_data.get('email')
         if new_email and new_email != user.email and self.get_user_by_email(new_email):
             raise ValueError("Email already registered")
+        user_data = {k: v for k, v in user_data.items() if k != 'password'}
         user.update(user_data)
         return user
- # ---------- Amenities ----------
+
+    # ---------- Amenities ----------
     def create_amenity(self, amenity_data):
         amenity = Amenity(**amenity_data)
         self.amenity_repo.add(amenity)
@@ -98,6 +100,16 @@ class HBnBFacade:
                 place.add_amenity(amenity)
         place.update(data)
         return place
+
+    def delete_place(self, place_id):
+        place = self.place_repo.get(place_id)
+        if not place:
+            return False
+        for review in list(place.reviews):
+            self.review_repo.delete(review.id)
+        self.place_repo.delete(place_id)
+        return True
+
 # ---------- Reviews ----------
     def create_review(self, review_data):
         data = dict(review_data)
@@ -107,6 +119,10 @@ class HBnBFacade:
         place = self.place_repo.get(data.pop('place_id', None))
         if not place:
             raise ValueError("Place not found")
+        if place.owner.id == user.id:
+            raise ValueError("You cannot review your own place")
+        if any(r.user.id == user.id for r in place.reviews):
+            raise ValueError("You have already reviewed this place")
         review = Review(place=place, user=user, **data)
         place.add_review(review)
         self.review_repo.add(review)

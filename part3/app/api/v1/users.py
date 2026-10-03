@@ -1,6 +1,6 @@
 from flask_restx import Namespace, Resource, fields
-from app.services import facade
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.services import facade
 
 api = Namespace('users', description='User operations')
 
@@ -8,12 +8,12 @@ user_model = api.model('User', {
     'first_name': fields.String(required=True, description='First name of the user'),
     'last_name': fields.String(required=True, description='Last name of the user'),
     'email': fields.String(required=True, description='Email of the user'),
+    'password': fields.String(required=True, description='Password of the user'),
 })
 
 user_update_model = api.model('UserUpdate', {
     'first_name': fields.String(description='First name of the user'),
     'last_name': fields.String(description='Last name of the user'),
-    'email': fields.String(description='Email of the user'),
 })
 
 
@@ -37,7 +37,7 @@ class UserList(Resource):
             new_user = facade.create_user(api.payload)
         except ValueError as e:
             return {'error': str(e)}, 400
-        return serialize_user(new_user), 201
+        return {'id': new_user.id, 'message': 'User successfully created'}, 201
 
     @api.response(200, 'List of users retrieved successfully')
     def get(self):
@@ -45,7 +45,7 @@ class UserList(Resource):
         return [serialize_user(u) for u in facade.get_all_users()], 200
 
 
-@api.route('/')
+@api.route('/<string:user_id>')
 class UserResource(Resource):
     @api.response(200, 'User details retrieved successfully')
     @api.response(404, 'User not found')
@@ -63,16 +63,13 @@ class UserResource(Resource):
     @api.response(400, 'Invalid input data')
     @jwt_required()
     def put(self, user_id):
-        """Update a user's information"""
+        """Update your own user information (not email or password)"""
         if user_id != get_jwt_identity():
             return {'error': 'Unauthorized action'}, 403
-        
         payload = api.payload
         if 'email' in payload or 'password' in payload:
             return {'error': 'You cannot modify email or password'}, 400
-            
         data = {k: payload[k] for k in ('first_name', 'last_name') if k in payload}
-        
         try:
             user = facade.update_user(user_id, data)
         except ValueError as e:
